@@ -1,0 +1,96 @@
+name: Build Ubuntu Server Autoinstall ISO 
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # can manually trigger the build from GitHub
+
+jobs:
+  build-image:
+    runs-on: ubuntu-26.04
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xorriso squashfs-tools curl
+
+      - name: Get ubuntu-server 26.04 iso
+        run: |
+          ISO_URL="https://releases.ubuntu.com/26.04/ubuntu-26.04.1-live-server-amd64.iso"
+          curl -L $ISO_URL -o ubuntu-server.iso
+
+      - name: Extract server ISO
+        run: |
+          mkdir -p iso_autoinstall_ws
+          xorriso -osirrox on -indev ubuntu-server.iso \
+            -extract / iso_autoinstall_ws \
+            -extract_boot_images boot_imgs
+          chmod -R +w iso_autoinstall_ws
+
+      - name: Insert Autoinstall configurations
+        run: |
+          # https://canonical-subiquity.readthedocs-hosted.com/en/latest/howto/autoinstall-quickstart.html
+          mkdir -p iso_autoinstall_ws/nocloud
+          cp ./cloud-init/user-data iso_autoinstall_ws/nocloud/user-data
+          touch iso_autoinstall_ws/nocloud/meta-data
+          
+          # Update GRUB config into both BIOS and EFI paths to ensure bootability
+          cp ./grub.cfg iso_autoinstall_ws/boot/grub/grub.cfg
+          mkdir -p iso_autoinstall_ws/boot/grub/x86_64-efi/
+          cp ./grub.cfg iso_autoinstall_ws/boot/grub/x86_64-efi/grub.cfg
+
+          # directory scoping
+          (
+            cd iso_autoinstall_ws
+            GRUB_MD5=$(md5sum boot/grub/grub.cfg | awk '{print $1}')
+            sed -E -i "s/^.*\s{2}boot\/grub\/grub\.cfg/${GRUB_MD5}  boot\/grub\/grub.cfg/" md5sum.txt
+
+            # Append fresh hashes for the nocloud files
+            md5sum nocloud/user-data nocloud/meta-data >> md5sum.txt
+          )
+
+      - name: Package Autoinstall ISO
+        run: |
+          # Get needed ISO params based on original ISO
+          REPORT=$(xorriso -indev ubuntu-26.04.1-live-server-amd64.iso -report_el_torito as_mkisofs 2>/dev/null)
+
+          # Space for GPT before Data Partition
+          PART_OFFSET=$(echo "$REPORT" | awk '/-partition_offset/ {print $2}')
+          # Data Partition
+          PART1_GUID=$(echo "$REPORT" | awk '/-iso_mbr_part_type/ {print $2}')
+          # EFI System Partition (ESP)
+          EFI_GUID=$(echo "$REPORT" | awk '/-append_partition 2/ {print $3}')
+          echo "Partition 1 GUID: $PART1_GUID"
+          echo "EFI Partition GUID: $EFI_GUID"
+
+          XORRISO_ARGS=(
+            # Enable Rock Ridge extensions, set ownership to root:root, and apply standard read permissions
+            -r
+            # Set ISO9660 volume label (max 32 characters)
+            -V "Ubuntu-Server-26.04-Autoinstall"
+            # Output filename
+            -o autoinstall-26.04-server-lattepanda-alpha-864s.iso
+            # Shift Partition 1 start to leave space at the beginning for the GPT header
+            -partition_offset "$PART_OFFSET"
+            # Append the extracted FAT32 EFI System Partition as GPT Partition 2
+            -append_partition 2 "$EFI_GUID" boot_imgs/gpt_part2_efi.img
+            # mark appended partitions in GPT instead of MBR
+            -appended_part_as_gpt
+            # Set Partition 1's GPT type GUID to Linux/Basic data (holds the main ISO9660 files)
+            -iso_mbr_part_type "$PART1_GUID"
+            iso_autoinstall_ws/
+          )
+          xorriso -as mkisofs "${XORRISO_ARGS[@]}"
+      - name: Upload Finished Production ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: autoinstall-26.04-server-lattepanda-alpha-864s-iso
+          path: autoinstall-26.04-server-lattepanda-alpha-864s.iso
+          if-no-files-found: error
+          retention-days: 7
