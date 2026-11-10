@@ -19,6 +19,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y qemu-utils snapd
+          sudo snap install yq --channel=v3/stable
 
       - name: Install ubuntu-image compiler
         run: |
@@ -26,7 +27,9 @@ jobs:
 
       - name: Build Declarative .img Artifact
         run: |
-          sudo ubuntu-image classic image.yaml
+          USER_DATA_CONTENT=$(cat ./cloud-init/user-data)
+          yq write image.yaml "customization.cloud-init.user-data" "$USER_DATA_CONTENT" > image.build.yaml
+          sudo ubuntu-image classic image.build.yaml
 
       - name: Compress Output Image for Performance
         run: |

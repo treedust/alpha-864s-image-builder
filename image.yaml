@@ -8,8 +8,16 @@ kernel: linux-image-generic      # Uses the standard generic PC kernel
 series: resolute                 # Ubuntu 26.04
 class: preinstalled
 customization:
+  # Required dependency
+  extra-snaps:
+    - name: snapd
+  extra-packages:
+    # required for cloud-init key
+    - name: cloud-init
+    # required in setup_bootloader stage of ubuntu-image
+    - name: grub-efi-amd64-bin
   cloud-init:
-    user-data: ./cloud-init/user-data
+    user-data: ""
 # Image Building
 # Gadget snap
 gadget:
@@ -35,10 +43,6 @@ rootfs:
     branch: resolute
     vcs: true
   sources-list-deb822: true
-# Required dependency
-customization:
-  extra-snaps:
-    - name: snapd
 artifacts:
   img:
     - name: custom-lattepanda-alpha-864s-live.img
