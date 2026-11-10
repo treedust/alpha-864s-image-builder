@@ -1,0 +1,43 @@
+#cloud-config
+autoinstall:
+  # https://canonical-subiquity.readthedocs-hosted.com/en/latest/reference/autoinstall-reference.html
+  version: 1
+  identity:
+    hostname: dev-board
+    username: devuser
+    # (Generated via openssl passwd -6)
+    password: "$6$expenge$Wv97Z77M6y.gHCE4wYJ7cO5Bf99V3E6BvY4FqKq1.0YgA1A3e0v8w1A8X.M0.wM5H2v1r8f6P1g2S0/w1M8g81"
+  ssh:
+    install-server: true
+    allow-pw: true
+  # https://netplan.readthedocs.io/en/latest/netplan-yaml/
+  network:
+    version: 2
+    renderer: networkd
+    ethernets:
+      # Onboard port dedicated strictly for SSH management
+      lattepanda-mgmt:
+        match:
+          # https://man.archlinux.org/man/systemd.net-naming-scheme.7.en
+          # Table 4. Path naming schemes
+          # onboard port is PCIe bus 2
+          # slot 0 (only 1 slot per bus for alpha 864s)
+          # lshw -class network -businfo
+          name: enp2s0
+        # do not request an ip lease
+        dhcp4: false
+        # static address for SSH
+        addresses:
+          - 192.168.1.109/24
+        # router address
+        routes:
+          - to: default
+            via: 192.168.1.1
+        nameservers:
+          addresses:
+            - 1.1.1.1
+            - 8.8.8.8
+  # LTS 26.04 installed on largest disk found
+  storage:
+    layout:
+      name: direct
