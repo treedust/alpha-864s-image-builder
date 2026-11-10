@@ -1,0 +1,41 @@
+name: Build Custom Ubuntu Server Image
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # can manually trigger the build from GitHub
+
+jobs:
+  build-image:
+    runs-on: ubuntu-26.04
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-utils snapd
+
+      - name: Install ubuntu-image compiler
+        run: |
+          sudo snap install ubuntu-image --classic
+
+      - name: Build Declarative .img Artifact
+        run: |
+          sudo ubuntu-image classic image.yaml
+
+      - name: Compress Output Image for Performance
+        run: |
+          gzip -9 custom-lattepanda-alpha-864s-live.img
+
+      - name: Upload Finished Production Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: custom-lattepanda-alpha-864s-live
+          path: custom-lattepanda-alpha-864s-live.img.gz
+          if-no-files-found: error
+          retention-days: 7

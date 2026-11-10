@@ -1,0 +1,46 @@
+# LattePanda Alpha 864s
+# https://github.com/canonical/ubuntu-image/blob/main/internal/imagedefinition/README.rst
+name: ubuntu-server-lattepanda-26
+display-name: Ubuntu Server 26.04 LattePanda Alpha
+revision: 1
+architecture: amd64              # Keeping x86_64 for Intel Core CPU
+kernel: linux-image-generic      # Uses the standard generic PC kernel
+series: resolute                 # Ubuntu 26.04
+class: preinstalled
+customization:
+  cloud-init:
+    user-data: ./cloud-init/user-data
+# Image Building
+# Gadget snap
+gadget:
+  url: https://github.com/canonical/pc-gadget
+  branch: classic
+  type: git
+# Root filesystem definition
+rootfs:
+  components:
+    - main
+    - restricted
+    - universe
+    - multiverse
+  archive: ubuntu
+  mirror: http://archive.ubuntu.com/ubuntu/
+  pocket: updates
+  seed:
+    urls:
+      - git://git.launchpad.net/~ubuntu-core-dev/ubuntu-seeds/+git/
+    names:
+      - server
+      - minimal
+    branch: resolute
+    vcs: true
+  sources-list-deb822: true
+# Required dependency
+customization:
+  extra-snaps:
+    - name: snapd
+artifacts:
+  img:
+    - name: custom-lattepanda-alpha-864s-live.img
+  manifest:
+    name: custom-lattepanda-alpha-864s-live.manifest
