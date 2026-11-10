@@ -41,3 +41,5 @@ autoinstall:
   storage:
     layout:
       name: direct
+      match:
+        model: "*MMC*"  # Matches the eMMC storage
