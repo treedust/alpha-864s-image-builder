@@ -17,7 +17,19 @@ customization:
     # required in setup_bootloader stage of ubuntu-image
     - name: grub-efi-amd64-bin
   cloud-init:
-    user-data: ""
+    # preinstalled does not use autoinstall 
+    user-data: |-
+      #cloud-config
+      hostname: dev-board
+      users:
+        - name: devuser
+          groups: sudo
+          sudo: ALL=(ALL:ALL) ALL
+          shell: /bin/bash
+          lock_passwd: false
+          passwd: "$6$expenge$Wv97Z77M6y.gHCE4wYJ7cO5Bf99V3E6BvY4FqKq1.0YgA1A3e0v8w1A8X.M0.wM5H2v1r8f6P1g2S0/w1M8g81"
+      ssh_pwauth: true
+    network-config: ""
 # Image Building
 # Gadget snap
 gadget:

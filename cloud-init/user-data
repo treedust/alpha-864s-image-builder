@@ -6,7 +6,7 @@ autoinstall:
     hostname: dev-board
     username: devuser
     # (Generated via openssl passwd -6)
-    password: "$6$expenge$Wv97Z77M6y.gHCE4wYJ7cO5Bf99V3E6BvY4FqKq1.0YgA1A3e0v8w1A8X.M0.wM5H2v1r8f6P1g2S0/w1M8g81"
+    password: "$6$expenge$G2kGtWcxdTz63GBJoRFzPbiFPUE79vUecik6hmOuGceIdTNRjL3GSxfA.VdaRhipAffM639ficO5Z99VAKd7e/"
   ssh:
     install-server: true
     allow-pw: true
