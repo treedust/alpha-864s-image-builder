@@ -44,4 +44,4 @@ autoinstall:
     layout:
       name: direct
       match:
-        path: /dev/mmcblk0  # Matches the eMMC storage
+        path: /dev/mmcblk1  # Matches the eMMC storage
